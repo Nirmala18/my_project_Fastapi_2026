@@ -1,0 +1,12 @@
+from pwdlib import PasswordHash
+
+
+password_hash = PasswordHash.recommended()#are small, reusable helper functions that perform common
+
+def hash(password:str): #schema
+    return password_hash.hash(password)
+ 
+ 
+ # Going to compare two hashes
+def verify(plain_password,hashed_password):
+    return password_hash.verify(plain_password,hashed_password)
