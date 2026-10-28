@@ -1,0 +1,121 @@
+from fastapi import HTTPException,FastAPI,Response,status,Depends,APIRouter
+from psycopg2.extras import RealDictCursor
+from pwdlib import PasswordHash
+from . import models, schemas,utils
+from typing import List
+from sqlalchemy.orm import Session
+from .database import engine,SessionLocal,get_db
+from .routers import posts,users
+#import models from our single dot database.py file,which current directory, grab file from current directory
+
+#password_hash = PasswordHash.recommended()
+#models.Base.metadata.create_all(bind=engine)
+#pydatic schemas.py pydatic imported here
+# remove of **in return Posts --> remove "data" word"{"data":Posts}
+app = FastAPI()
+
+      # import Depends from fastapi library,this will get_db function#db:  Session = Depends(get_db)
+      #that we can repeat that process for every single one of our path operations#testing purpose /sample,from sqlalchemy.orm import Session
+# @app.get("/sqlalchemy") #testing purpose
+# def test_post(db:  Session = Depends(get_db)):# talk any req /end point each time 
+#     #select * from posts
+#     posts = db.query(models.Post).all()
+#     print(posts)# in models.py Post is models(class) whci has table n columns
+#     return {"Status":"Success","data":"posts"}   
+ 
+ # #select * from posts working realtime project    
+app.include_router(posts.router)
+app.include_router(users.router)
+
+# #---------------------------
+# @app.get("/posts",response_model=List[schemas.Post])
+# def get_posts(db:  Session = Depends(get_db)):# add dependency
+#       #select * from posts
+#       posts = db.query(models.Post).all()
+#       #return {"Status":"Succesfuly data retrived","data":posts}
+#       return posts
+
+# #Insert query or create data 
+# @app.post("/posts1",status_code=status.HTTP_201_CREATED,response_model=schemas.Post)
+# def create_post(post:schemas.PostCreate,db:  Session = Depends(get_db)):#Post is pydantic 
+# #cursor.execute("""INSERT INTO posts(title, content, published) VALUES (%s,%s,%s) RETURNING * """,(post.title,post.content,post.published))
+      
+#       #print(post.model_dump()) # for 50 fields using this technique
+#       #new_post= models.Post(title=post.title,content=post.content,published=post.published)
+#       #take db object and do commit
+#       new_post = models.Post(**post.model_dump())
+#       db.add(new_post) #for minimal fileds 5 use thsi tech
+#       db.commit()
+#       # returning post in sql in sqlalchmey is different
+#       db.refresh(new_post)
+#       return new_post
+
+# #Querying by individual posy by id
+# @app.get("/posts/{id}",response_model=schemas.Post)
+# def get_post(id: int, db: Session = Depends(get_db)): # add db dependency
+#       posts = db.query(models.Post).filter(models.Post.id == id ).first() # use path parameters id
+
+#       if not posts:
+#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                                 detail=f"post with id :{id} was  not found")
+#       return posts
+
+# #Delete operation using sql alchemy
+# @app.delete("/posts/{id}")
+# def delete_post(id: int,db: Session = Depends(get_db)):
+#       delete_post = db.query(models.Post).filter(models.Post.id == id)
+#       if delete_post.first() == None:
+#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with {id} does not exist")
+      
+#       # if id the exist  , delet the specific record 
+#       delete_post.delete(synchronize_session=False) #check doc sqlalchemy
+#       db.commit()
+      
+#       return {"message":"deletd the post"}
+
+# #Update Query using sql alchmey
+# @app.put("/update_post/{id}",response_model=schemas.Post) # based id we updating the records
+# def update(id:int,post1:schemas.PostCreate,db: Session = Depends(get_db)):
+#      # post:Post -> variable post : Post(BaseModel)->pydantic schema,extract all body fields
+#       post_query = db.query(models.Post).filter(models.Post.id == id)#fetch dat by id
+#       update_post=post_query.first() # grabing the query from first 
+      
+#       if update_post == None: #variable of Post -> post.title,post.content,post.published
+#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+#                                 detail = f"post with id :{id } does not exist")
+#      # post_query.update({'title':'my birthday','content':'nimmi'},synchronize_session=False)
+#       post_query.update(post1.model_dump(),synchronize_session=False) # use pydantic schema post1 variable
+      
+#       db.commit()
+#       return post_query.first()  # grabing the query from first
+
+# #CreateUser login user
+# @app.post("/post",status_code=status.HTTP_201_CREATED,response_model=schemas.UserOut)#return key value pairs
+# def Post_usr(user:schemas.Usercreate,db:Session=Depends(get_db)):#schemas class and db class mthod
+#       #we need to do couple of thing before crating user create the "hash the password"
+# # hash the password = user.password
+#       hashed_password = utils.hash(user.password)#schema req,util is class,hash is function
+#       user.password = hashed_password # set this to new hashpassword
+      
+#       # create a user
+#       create = models.User(**user.model_dump())# req convert to dictionay
+#           # Check if email already exists
+#       existUser = db.query(models.User).filter(models.User.email == user.email).first()
+#       #existUser.first()# grab the first query
+#       if existUser:
+#             raise HTTPException(status.HTTP_400_BAD_REQUEST,detail="email is already exist")
+      
+#       create = models.User(**user.model_dump())# req convert to dictionay
+#       db.add(create)
+#       db.commit()
+#       db.refresh(create)
+#       return create
+
+# @app.get("/getuser/{id}",response_model=schemas.UserOut)
+# def get_users(id:int,db:Session=Depends(get_db)): #extract id:int, we r not sending any body req so no need thid user:schemas.Usercreate,
+#       get_user1 = db.query(models.User).filter(models.User.id == id).first()
+      
+#       if not get_user1:
+#             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"user id {id} does not exist")
+      
+#       return get_user1
