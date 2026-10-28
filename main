@@ -1,0 +1,135 @@
+from fastapi import FastAPI,Response,status,HTTPException
+from fastapi.params import Body
+from pydantic import BaseModel
+from typing import Optional
+from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor 
+import time
+
+app=FastAPI()
+
+class Post(BaseModel):
+    title: str
+    content:str
+    published: bool = True
+    #rating:Optional[int]=None
+    
+while True:    
+#https://www.psycopg.org/docs/
+    try:
+        conn = psycopg2.connect(host='localhost',database='fastapi',user='postgres',
+        password='password',cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("Database connection is succesfull")
+        break
+    except Exception as error:
+        print(" Connecting to  Database failed")
+        print("error was ", error)
+        time.sleep(2)
+ 
+my_post=[{"title":"title of post1","content":"content of post 1","id":1},{"title":"favrite food",
+"content":"I like pizza","id":2}]
+
+def find_path(id): # @app.get("/posts/{id}")
+    for p in my_post:
+        if p['id']==id:
+            return p
+
+# Delete the id -> @app.delete("posts/{id}")
+# find the index in the array,try to get the index of that specific item., iterate over specific item
+def find_index_post(id):
+    for i ,p in enumerate(my_post):
+        if p['id'] == id:
+            return i 
+
+
+@app.get("/postarray")
+def root():
+    return{"data": my_post}
+
+
+@app.get("/post")#getting all posts
+def root():
+    return{"data": "welcome to world api"}
+
+@app.get("/posts")
+def get_posts():
+    cursor.execute("""SELECT * FROM posts """)
+    posts = cursor.fetchall()
+    #print(posts)
+    return {"data": posts}
+
+@app.get("/")
+def root():
+    return {"message": "welcome to dev api"}
+
+#/post method  or post request
+@app.post("/createposts")
+#function
+def create_posts(payload:dict = Body(...)):
+    print(payload)
+    return {"message":"succesfully created posts"}
+
+@app.post("/createposts")
+def create_posts(payload: dict = Body(...)):
+	print(payload)
+	return {"new_post": f"title {payload['title']} content:{payload['content']}"}
+
+@app.post("/createpost1",status_code=status.HTTP_201_CREATED) #pydantic 
+def create_posts( post:Post):
+    print(post)
+    print (post.model_dump()) # .dict -> dictionary
+    return {"data": post}
+	
+ #to random ids for data
+ 
+ 
+@app.post("/posts",status_code = status.HTTP_201_CREATED)
+def create_posts(post:Post):
+    cursor.execute("""INSERT INTO posts(title, content, published) VALUES (%s,%s,%s) RETURNING * """,
+                   (post.title,post.content,post.published))
+    new_posts = cursor.fetchone()
+    conn.commit()
+    print(new_posts)
+    return {"message":new_posts}
+
+
+@app.get("/posts/{id}")# creating indivudual post, Imported Resposne and Status in FAst APi interface
+def get_id(id:int,response:Response):
+    print(type(id))
+    post=find_path(int(id))
+    
+    if not post: # response-> property of status code
+       # response.status_code = 404 # this worked
+        #  response.status_code = status.HTTP_404_NOT_FOUND
+        #  return {"message": f" post with {id} is not found"}
+        raise HTTPException(status_code= 404, detail=f"post with {id} is not found")
+    print(post)
+    return{"Post_detail":post}
+
+@app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)# need to write the status code
+def delete_post(id: int): #def find_index_post(id):
+    #deleting post
+    #find the index in the array that has required id
+    #my_posts.pop(index)
+    #call funtion
+    index = find_index_post(id)
+     
+    if index == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} does not exist")
+    my_post.pop(index) 
+   # return{"Delete": "post successfully deleted"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.put("/posts/{id}")
+def update_post(id: int,post:Post):
+    print(post)
+    index = find_index_post(id)
+    if index == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} does not exist")
+    
+    post_dict = post.model_dump() 
+    post_dict[ 'id' ] = id
+    my_post[index] = post_dict
+    return {"data": post_dict}
