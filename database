@@ -1,0 +1,23 @@
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker,declarative_base
+
+
+#PGADMIN un,pwd,local host,db name, ,its not good to store the detail in code.
+SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:password@localhost/fastapi'
+
+# engine is responsible for connect the postgresDB
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+ # connecto sql db use sessionmaker
+SessionLocal = sessionmaker(autocommit = False,autoflush=False,bind = engine)
+#declarartive_base(),the models that we define to create our tables in Postgres,
+#they are going to extend this base class
+Base = declarative_base()
+
+#create this dependency,get a connection to ur DB/session to ur DB  & Every time we get request , we are going to get a session,we are going to send it to SQL statement.
+# After that req is done.then close it out.we get req to any of our API ends.
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
