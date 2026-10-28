@@ -1,0 +1,28 @@
+from sqlalchemy import Column,Integer,String,Boolean
+from .database import Base
+from sqlalchemy.sql.sqltypes import TIMESTAMP
+from sqlalchemy.sql.expression import text
+#import Base from database.py file
+
+class Post(Base):
+    __tablename__ = "posts" #create table name with underscores
+    
+    #Define all column "id""title" "content" "published" "is_created"
+    # with constraint Integer,string ,primary,key , nullable.
+    #import column,import Integer,import String
+    id = Column(Integer,primary_key=True,nullable=False,autoincrement =True)
+    title =Column(String(200),nullable=False)
+    content = Column(String(200),nullable = False)
+    published = Column(Boolean,server_default='True')
+    created_at = Column(TIMESTAMP(timezone=True),nullable=False,server_default=text('now()'))# pass property timezone = true
+    #txt is method,import text
+    
+class User(Base):
+    __tablename__ = "users" #table creation
+    
+    id = Column(Integer,primary_key=True,nullable=False)
+    email = Column(String,nullable=False,unique=True)# unique email address
+    #name = Column(String,nullable=False)
+    password = Column(String,nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True),nullable=False,server_default=text('now()')) 
+    
