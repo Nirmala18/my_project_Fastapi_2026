@@ -1,0 +1,77 @@
+from fastapi import FastAPI,HTTPException,Response,status
+from pydantic import BaseModel
+import psycopg2
+from psycopg2.extras import RealDictCursor 
+import time
+
+app = FastAPI()
+
+class Post(BaseModel):
+    title : str
+    content : str
+    published : bool = True
+    
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost',database='fastapi',user='postgres',
+        password='password',cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("Database connection is succesfull")
+        break
+    except Exception as error:
+        print(" Connecting to Database failed")
+        print("error was ", error)
+        time.sleep(2)
+        
+@app.get("/post")
+def get_post():
+    cursor.execute(""" SELECT * FROM posts """)
+    posts = cursor.fetchall()
+    print(posts)
+    return {"message":posts}
+
+@app.post("/posts",status_code = status.HTTP_201_CREATED)
+def create_posts(post:Post):
+    cursor.execute("""INSERT INTO posts(title, content, published) VALUES (%s,%s,%s) RETURNING * """,(post.title,post.content,post.published))
+    new_posts = cursor.fetchone()
+    conn.commit()
+    return {"message":new_posts}
+
+# # creating indivudual post, Imported Resposne and Status in FAst APi interface
+@app.get("/posts/{id}")# http://127.0.0.1:8000/posts/1
+def get_post(id : int):
+    #cursor.execute(""" SELECT * FROM posts WHERE id = 1 """) # HARCODING ID NUMBER CONCEPT
+    #cursor.execute("""  SELECT * FROM posts WHERE id = %s""",(str(id))) #select * from posts is string id is int, converting to string
+    cursor.execute("""  SELECT * FROM posts WHERE id = %s""" ,(id,)) # (id,) this indicates tuple with int work for two to many digit from postman http://127.0.0.1:8000/posts/9892424324
+    post = cursor.fetchone()
+    
+    # if post is not found 
+    if not post:
+        raise HTTPException(status_code= 404,detail = f"Post with {id} is not found")
+    return {"message":post}
+
+# delete path operation
+@app.delete("/posts/{id}")
+def delete_post(id :int ):
+    cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """ ,(id,)) 
+    delete_post = cursor.fetchone()
+    conn.commit()
+    
+    if delete_post is None:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND,detail = f"Post {id} not Found")
+    print(delete_post)
+    return {"message":"Post deleted succesfully","Post":delete_post}
+
+#update path operation
+@app.put("/update_post/{id}")
+def update_post(id : int, post:Post):
+    #cursor.execute("""UPDATE posts SET published = true where ID = %s RETURNING * """,(id,))# hardcoing the values with tuple id
+    cursor.execute(""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING * """,(post.title,post.content,post.published,(id,)))
+    update_post = cursor.fetchone()# fetch the update post and save in variable update_post
+    conn.commit()
+    
+    if update_post == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail= f"Post with id :{id} is not Exist")
+    #print(update_post)
+    return {"message ":"post","posts":update_post}
+
